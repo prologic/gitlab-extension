@@ -6,13 +6,12 @@ import (
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/google/uuid"
 	"github.com/prologic/bitcask"
+	"github.com/ricdeau/gitlab-extension/app/pkg/config"
+	"github.com/ricdeau/gitlab-extension/app/pkg/contracts"
+	"github.com/ricdeau/gitlab-extension/app/pkg/logging"
+	"github.com/ricdeau/gitlab-extension/app/pkg/queue"
+	"github.com/ricdeau/gitlab-extension/app/pkg/utils"
 	"github.com/sirupsen/logrus"
-	"server/conf"
-	"server/contracts"
-	"server/logging"
-	"server/queue"
-	"server/utils"
-	"strconv"
 	"strings"
 )
 
@@ -26,7 +25,7 @@ type GitlabMessage contracts.PipelinePush
 // Telegram bot that forwards messages form global queue topic to telegram chats.
 type Bot struct {
 	*tgbotapi.BotAPI
-	*conf.Config
+	*config.Config
 	db        *bitcask.Bitcask
 	queue     *queue.GlobalQueue
 	logger    *logrus.Entry
@@ -38,7 +37,7 @@ func NewBot(
 	botApi *tgbotapi.BotAPI,
 	db *bitcask.Bitcask,
 	queue *queue.GlobalQueue,
-	config *conf.Config,
+	config *config.Config,
 	logger *logrus.Logger) *Bot {
 
 	bot := &Bot{}
@@ -47,7 +46,7 @@ func NewBot(
 	bot.queue = queue
 	bot.Config = config
 	bot.logger = logger.WithField(logging.CorrelationIdKey, uuid.New())
-	bot.updatesCh = bot.GetUpdatesChan(tgbotapi.UpdateConfig{Timeout: 5})
+	//bot.updatesCh = bot.GetUpdatesChan(tgbotapi.UpdateConfig{Timeout: 5})
 	bot.logger.Info("Telegram bot initialized")
 	return bot
 }
@@ -102,31 +101,31 @@ func (bot *Bot) Send(chatId int64, text string) {
 
 // Get namespaces that have been bound to given chat id.
 func (bot *Bot) getChatNamespaces(chatId int64) (result []string, err error) {
-	prefix := fmt.Sprintf("%s_%d_", chatPrefix, chatId)
-	err = bot.db.Scan(prefix, func(key string) error {
-		result = append(result, strings.TrimPrefix(key, prefix))
-		return nil
-	})
+	//prefix := fmt.Sprintf("%s_%d_", chatPrefix, chatId)
+	//err = bot.db.Scan(prefix, func(key string) error {
+	//	result = append(result, strings.TrimPrefix(key, prefix))
+	//	return nil
+	//})
 	return
 }
 
 // Binds namespaces to given chat id.
 func (bot *Bot) setChatNamespaces(chatId int64, namespaces []string) (err error) {
-	err = bot.db.Lock()
-	if err != nil {
-		return
-	}
-	defer bot.db.Unlock()
-	for _, ns := range namespaces {
-		key := fmt.Sprintf("%s_%d_%s", chatPrefix, chatId, ns)
-		if bot.db.Has(key) {
-			continue
-		}
-		err = bot.db.Put(key, []byte("<empty>"))
-		if err != nil {
-			return
-		}
-	}
+	//err = bot.db.Lock()
+	//if err != nil {
+	//	return
+	//}
+	//defer bot.db.Unlock()
+	//for _, ns := range namespaces {
+	//	key := fmt.Sprintf("%s_%d_%s", chatPrefix, chatId, ns)
+	//	if bot.db.Has(key) {
+	//		continue
+	//	}
+	//	err = bot.db.Put(key, []byte("<empty>"))
+	//	if err != nil {
+	//		return
+	//	}
+	//}
 	return
 }
 
@@ -159,26 +158,26 @@ func (bot *Bot) getAvailableNamespaces(privateToken string) (result []string) {
 
 // Subscribes bot to specific topic in global queue.
 func (bot *Bot) subscribeToTopic() {
-	bot.queue.AddTopic(BotTopic)
-	bot.queue.Subscribe(BotTopic, func(message interface{}) {
-		msg := GitlabMessage(message.(contracts.PipelinePush))
-		err := bot.db.Scan(chatPrefix, func(key string) error {
-			if strings.HasSuffix(key, msg.Project.Namespace) {
-				parts := strings.Split(key, "_")
-				if len(parts) > 2 {
-					chatId, err := strconv.ParseInt(parts[1], 10, 64)
-					if err != nil {
-						return err
-					}
-					bot.Send(chatId, msg.toTelegramMessageText())
-				}
-			}
-			return nil
-		})
-		if err != nil {
-			bot.logger.Errorf("Error while sending gitlab update to telegram: %v", err)
-		}
-	})
+	//bot.queue.AddTopic(BotTopic)
+	//bot.queue.Subscribe(BotTopic, func(message interface{}) {
+	//	msg := GitlabMessage(message.(contracts.PipelinePush))
+	//	err := bot.db.Scan(chatPrefix, func(key string) error {
+	//		if strings.HasSuffix(key, msg.Project.Namespace) {
+	//			parts := strings.Split(key, "_")
+	//			if len(parts) > 2 {
+	//				chatId, err := strconv.ParseInt(parts[1], 10, 64)
+	//				if err != nil {
+	//					return err
+	//				}
+	//				bot.Send(chatId, msg.toTelegramMessageText())
+	//			}
+	//		}
+	//		return nil
+	//	})
+	//	if err != nil {
+	//		bot.logger.Errorf("Error while sending gitlab update to telegram: %v", err)
+	//	}
+	//})
 }
 
 // Formats gitlab message to telegram's message text.

@@ -5,13 +5,13 @@ RUN apk update \
     && apk add --no-cache glide
 WORKDIR $GOPATH/src/server
 RUN mkdir /output
-COPY backend/src/server .
+COPY app .
 RUN glide install
 RUN GOOS=linux go build -o /output/srv
 
 FROM node:12-alpine as frontend-builder
 WORKDIR /front
-COPY frontend .
+COPY web .
 ENV PATH /front/node_modules/.bin:$PATH
 RUN yarn
 RUN yarn run build

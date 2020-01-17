@@ -3,12 +3,12 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ricdeau/gitlab-extension/app/pkg/caching"
+	"github.com/ricdeau/gitlab-extension/app/pkg/config"
+	"github.com/ricdeau/gitlab-extension/app/pkg/contracts"
+	"github.com/ricdeau/gitlab-extension/app/pkg/logging"
+	"github.com/ricdeau/gitlab-extension/app/pkg/utils"
 	"net/http"
-	"server/cache"
-	"server/conf"
-	"server/contracts"
-	"server/logging"
-	"server/utils"
 	"strconv"
 	"strings"
 	"sync"
@@ -17,7 +17,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 )
 
 const (
@@ -28,18 +27,18 @@ const (
 // ProxyHandler that performs multiple requests to gitlab API and returns single combined response.
 // with all projects, first N pipelines for each project, and last commit for each pipeline.
 type ProxyHandler struct {
-	*conf.Config
+	*config.Config
 	Log            *logrus.Logger
 	gitlabApiV4Url string
 	client         *http.Client
-	cache          cache.ProjectsCache
+	cache          caching.ProjectsCache
 }
 
 // Create new instance of ProxyHandler.
-// conf - Global config
+// config - Global config
 // cache - Caching module
 // logger - Logging module
-func NewProxyHandler(conf *conf.Config, cache cache.ProjectsCache, logger *logrus.Logger) *ProxyHandler {
+func NewProxyHandler(conf *config.Config, cache caching.ProjectsCache, logger *logrus.Logger) *ProxyHandler {
 	instance := &ProxyHandler{}
 	instance.Config = conf
 	instance.cache = cache
@@ -105,21 +104,21 @@ func (handler *ProxyHandler) Handle(c *gin.Context) {
 // branches - Branches to filter pipelines
 func (handler *ProxyHandler) filterProjects(
 	projects []contracts.Project, projectIds []int64, branches []string) (result []contracts.Project) {
-
-	for _, proj := range projects {
-		if funk.Any(projectIds) && !funk.Contains(projectIds, proj.Id) {
-			continue
-		}
-		var filteredPipelines []contracts.Pipeline
-		for _, pipe := range proj.Pipelines {
-			if funk.Any(branches) && !funk.Contains(branches, pipe.Branch) {
-				continue
-			}
-			filteredPipelines = append(filteredPipelines, pipe)
-		}
-		proj.Pipelines = filteredPipelines
-		result = append(result, proj)
-	}
+	//
+	//for _, proj := range projects {
+	//	if funk.Any(projectIds) && !funk.Contains(projectIds, proj.Id) {
+	//		continue
+	//	}
+	//	var filteredPipelines []contracts.Pipeline
+	//	for _, pipe := range proj.Pipelines {
+	//		if funk.Any(branches) && !funk.Contains(branches, pipe.Branch) {
+	//			continue
+	//		}
+	//		filteredPipelines = append(filteredPipelines, pipe)
+	//	}
+	//	proj.Pipelines = filteredPipelines
+	//	result = append(result, proj)
+	//}
 	return
 }
 

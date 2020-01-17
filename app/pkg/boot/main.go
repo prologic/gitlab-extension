@@ -6,22 +6,22 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	externalCache "github.com/patrickmn/go-cache"
 	"github.com/prologic/bitcask"
+	"github.com/ricdeau/gitlab-extension/app/pkg/caching"
+	"github.com/ricdeau/gitlab-extension/app/pkg/config"
+	"github.com/ricdeau/gitlab-extension/app/pkg/handlers"
+	"github.com/ricdeau/gitlab-extension/app/pkg/logging"
+	"github.com/ricdeau/gitlab-extension/app/pkg/queue"
+	"github.com/ricdeau/gitlab-extension/app/pkg/telegram"
 	"io"
 	"io/ioutil"
 	"os"
-	cache2 "server/cache"
-	"server/telegram"
+
 	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/olahol/melody.v1"
-
-	"server/conf"
-	"server/handlers"
-	"server/logging"
-	"server/queue"
 )
 
 const (
@@ -42,10 +42,10 @@ func main() {
 	})
 
 	// set config
-	config := conf.Get(*configFile, logger)
+	conf := config.Get(*configFile, logger)
 
 	// sel logging targets
-	setLogger(config, logger)
+	setLogger(conf, logger)
 
 	// set router
 	router := setRouter(logger)
@@ -64,16 +64,16 @@ func main() {
 	globalQueue := queue.NewGlobalQueue(logger)
 
 	// set cache
-	cache := cache2.NewCache(externalCache.New(60*time.Minute, -1), globalQueue, logger)
+	cache := caching.NewCache(externalCache.New(60*time.Minute, -1), globalQueue, logger)
 
 	// set telegram bot
-	setTelegramBot(config, logger, db, globalQueue)
+	setTelegramBot(conf, logger, db, globalQueue)
 
 	//set html handler
 	router.Use(handlers.Serve("/", handlers.LocalFile("./www", true)))
 
 	// set proxy handler
-	proxyHandler := handlers.NewProxyHandler(config, cache, logger)
+	proxyHandler := handlers.NewProxyHandler(conf, cache, logger)
 	router.GET("/projects", proxyHandler.Handle)
 
 	// set socket handler
@@ -81,26 +81,26 @@ func main() {
 	router.GET("/ws", socketHandler.Handle)
 
 	// set webhook handler
-	topics := []string{handlers.SocketTopic, cache2.UpdateCacheTopic}
-	if config.BotEnabled {
+	topics := []string{handlers.SocketTopic, caching.UpdateCacheTopic}
+	if conf.BotEnabled {
 		topics = append(topics, telegram.BotTopic)
 	}
 	webhookHandler := handlers.NewWebhookHandler(globalQueue, topics, logger)
 	router.POST("/webhook", webhookHandler.Handle)
 
-	err = router.Run(fmt.Sprintf(":%d", config.Port))
+	err = router.Run(fmt.Sprintf(":%d", conf.Port))
 	if err != nil {
-		logger.Fatalf("Unable to start server: %v", err)
+		logger.Fatalf("Unable to start boot: %v", err)
 	}
 }
 
-func setTelegramBot(config *conf.Config, logger *logrus.Logger, db *bitcask.Bitcask, globalQueue *queue.GlobalQueue) {
-	if config.BotEnabled {
-		botApi, err := tgbotapi.NewBotAPI(config.BotToken)
+func setTelegramBot(conf *config.Config, logger *logrus.Logger, db *bitcask.Bitcask, globalQueue *queue.GlobalQueue) {
+	if conf.BotEnabled {
+		botApi, err := tgbotapi.NewBotAPI(conf.BotToken)
 		if err != nil {
 			logger.Fatalf("Unable to authorize to telegram bot API: %v", err)
 		}
-		bot := telegram.NewBot(botApi, db, globalQueue, config, logger)
+		bot := telegram.NewBot(botApi, db, globalQueue, conf, logger)
 		bot.Start()
 	}
 }
@@ -120,13 +120,13 @@ func setRouter(logger *logrus.Logger) *gin.Engine {
 	return router
 }
 
-func setLogger(config *conf.Config, logger *logrus.Logger) {
+func setLogger(config *config.Config, logger *logrus.Logger) {
 	writers := make([]io.Writer, 0)
 	if config.HasConsoleLogging() {
 		writers = append(writers, os.Stdout)
 	}
 	if config.HasFileLogging() && config.RollingFileSettings != nil {
-		fileLogger := config.RollingFileSettings.CreateLumberjack(logger)
+		fileLogger := config.RollingFileSettings.CreateRollingWriter(logger)
 		writers = append(writers, fileLogger)
 	}
 	if len(writers) == 0 {

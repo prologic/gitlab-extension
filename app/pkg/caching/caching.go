@@ -1,11 +1,11 @@
-package cache
+package caching
 
 import (
 	"fmt"
 	externalCache "github.com/patrickmn/go-cache"
+	"github.com/ricdeau/gitlab-extension/app/pkg/contracts"
+	"github.com/ricdeau/gitlab-extension/app/pkg/queue"
 	"github.com/sirupsen/logrus"
-	"server/contracts"
-	"server/queue"
 	"sync"
 	"time"
 )

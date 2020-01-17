@@ -2,10 +2,10 @@ package handlers
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/ricdeau/gitlab-extension/app/pkg/contracts"
+	"github.com/ricdeau/gitlab-extension/app/pkg/queue"
 	"github.com/sirupsen/logrus"
 	"net/http"
-	"server/contracts"
-	"server/queue"
 )
 
 // WebhookHandler handles http message from gitlab webhook pushes.

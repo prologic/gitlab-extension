@@ -3,9 +3,9 @@ package handlers
 import (
 	"encoding/json"
 	"github.com/gin-gonic/gin"
+	"github.com/ricdeau/gitlab-extension/app/pkg/queue"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/olahol/melody.v1"
-	"server/queue"
 )
 
 const (

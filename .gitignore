@@ -3,13 +3,13 @@
 # dependencies
 .idea/*
 node_modules
-frontend/node_modules
-frontend/build
-backend/src/server/vendor
-backend/src/server/db/
-backend/src/server/logs/
+web/node_modules
+web/build
+app/src/server/vendor
+app/src/server/db/
+app/src/server/logs/
 .pnp
-frontend/.pnp
+web/.pnp
 .pnp.js
 
 
