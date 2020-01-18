@@ -10,6 +10,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/prologic/bitcask v0.3.5
 	github.com/sirupsen/logrus v1.4.2
+	github.com/stretchr/testify v1.4.0
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
 	gopkg.in/olahol/melody.v1 v1.0.0-20170518105555-d52139073376
 )
