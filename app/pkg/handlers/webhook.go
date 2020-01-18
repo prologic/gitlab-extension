@@ -2,21 +2,21 @@ package handlers
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/ricdeau/gitlab-extension/app/pkg/broker"
 	"github.com/ricdeau/gitlab-extension/app/pkg/contracts"
-	"github.com/ricdeau/gitlab-extension/app/pkg/queue"
 	"github.com/sirupsen/logrus"
 	"net/http"
 )
 
 // WebhookHandler handles http message from gitlab webhook pushes.
 type WebhookHandler struct {
-	queue     *queue.GlobalQueue
+	queue     *broker.MessageBroker
 	Log       *logrus.Logger
 	publishTo []string
 }
 
 // Create new WebhookHandler instance.
-func NewWebhookHandler(queue *queue.GlobalQueue, publishTo []string, log *logrus.Logger) *WebhookHandler {
+func NewWebhookHandler(queue *broker.MessageBroker, publishTo []string, log *logrus.Logger) *WebhookHandler {
 	for _, topicName := range publishTo {
 		queue.AddTopic(topicName)
 	}

@@ -3,8 +3,8 @@ package caching
 import (
 	"fmt"
 	externalCache "github.com/patrickmn/go-cache"
+	"github.com/ricdeau/gitlab-extension/app/pkg/broker"
 	"github.com/ricdeau/gitlab-extension/app/pkg/contracts"
-	"github.com/ricdeau/gitlab-extension/app/pkg/queue"
 	"github.com/sirupsen/logrus"
 	"sync"
 	"time"
@@ -24,10 +24,10 @@ type ProjectsCache interface {
 type Cache struct {
 	*externalCache.Cache
 	*sync.Mutex
-	queue *queue.GlobalQueue
+	queue *broker.MessageBroker
 }
 
-func NewCache(externalCache *externalCache.Cache, queue *queue.GlobalQueue, logger *logrus.Logger) *Cache {
+func NewCache(externalCache *externalCache.Cache, queue *broker.MessageBroker, logger *logrus.Logger) *Cache {
 	result := Cache{}
 	result.Cache = externalCache
 	result.queue = queue

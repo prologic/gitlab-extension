@@ -6,10 +6,10 @@ import (
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/google/uuid"
 	"github.com/prologic/bitcask"
+	"github.com/ricdeau/gitlab-extension/app/pkg/broker"
 	"github.com/ricdeau/gitlab-extension/app/pkg/config"
 	"github.com/ricdeau/gitlab-extension/app/pkg/contracts"
 	"github.com/ricdeau/gitlab-extension/app/pkg/logging"
-	"github.com/ricdeau/gitlab-extension/app/pkg/queue"
 	"github.com/ricdeau/gitlab-extension/app/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"strings"
@@ -27,7 +27,7 @@ type Bot struct {
 	*tgbotapi.BotAPI
 	*config.Config
 	db        *bitcask.Bitcask
-	queue     *queue.GlobalQueue
+	queue     *broker.MessageBroker
 	logger    *logrus.Entry
 	updatesCh tgbotapi.UpdatesChannel
 }
@@ -36,7 +36,7 @@ type Bot struct {
 func NewBot(
 	botApi *tgbotapi.BotAPI,
 	db *bitcask.Bitcask,
-	queue *queue.GlobalQueue,
+	queue *broker.MessageBroker,
 	config *config.Config,
 	logger *logrus.Logger) *Bot {
 

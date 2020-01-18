@@ -6,11 +6,11 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	externalCache "github.com/patrickmn/go-cache"
 	"github.com/prologic/bitcask"
+	"github.com/ricdeau/gitlab-extension/app/pkg/broker"
 	"github.com/ricdeau/gitlab-extension/app/pkg/caching"
 	"github.com/ricdeau/gitlab-extension/app/pkg/config"
 	"github.com/ricdeau/gitlab-extension/app/pkg/handlers"
 	"github.com/ricdeau/gitlab-extension/app/pkg/logging"
-	"github.com/ricdeau/gitlab-extension/app/pkg/queue"
 	"github.com/ricdeau/gitlab-extension/app/pkg/telegram"
 	"io"
 	"io/ioutil"
@@ -61,7 +61,7 @@ func main() {
 	}()
 
 	// set global queue
-	globalQueue := queue.NewGlobalQueue(logger)
+	globalQueue := broker.New()
 
 	// set cache
 	cache := caching.NewCache(externalCache.New(60*time.Minute, -1), globalQueue, logger)
@@ -94,7 +94,7 @@ func main() {
 	}
 }
 
-func setTelegramBot(conf *config.Config, logger *logrus.Logger, db *bitcask.Bitcask, globalQueue *queue.GlobalQueue) {
+func setTelegramBot(conf *config.Config, logger *logrus.Logger, db *bitcask.Bitcask, globalQueue *broker.MessageBroker) {
 	if conf.BotEnabled {
 		botApi, err := tgbotapi.NewBotAPI(conf.BotToken)
 		if err != nil {

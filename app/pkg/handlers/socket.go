@@ -3,7 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"github.com/gin-gonic/gin"
-	"github.com/ricdeau/gitlab-extension/app/pkg/queue"
+	"github.com/ricdeau/gitlab-extension/app/pkg/broker"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/olahol/melody.v1"
 )
@@ -15,12 +15,12 @@ const (
 // SocketHandler handles messages from global queue to websockets.
 type SocketHandler struct {
 	*melody.Melody
-	queue *queue.GlobalQueue
+	queue *broker.MessageBroker
 	Log   *logrus.Logger
 }
 
 // Create new SocketHandler instance
-func NewSocketHandler(wsHandler *melody.Melody, queue *queue.GlobalQueue, logger *logrus.Logger) *SocketHandler {
+func NewSocketHandler(wsHandler *melody.Melody, queue *broker.MessageBroker, logger *logrus.Logger) *SocketHandler {
 	handler := SocketHandler{wsHandler, queue, logger}
 	handler.queue.AddTopic(SocketTopic)
 	handler.queue.Subscribe(SocketTopic, func(message interface{}) {

@@ -28,7 +28,7 @@ func (m *mockLogger) Errorf(_ string, _ ...interface{}) {
 	m.Called()
 }
 
-func TestPerformGetRequestSuccess(t *testing.T) {
+func TestPerformGetRequest_Success(t *testing.T) {
 	expected := []byte("success")
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -57,7 +57,7 @@ func TestPerformGetRequestSuccess(t *testing.T) {
 	}
 }
 
-func TestPerformGetRequestError(t *testing.T) {
+func TestPerformGetRequest_Error(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 
 	logger := new(mockLogger)
@@ -81,7 +81,7 @@ func TestPerformGetRequestError(t *testing.T) {
 	}
 }
 
-func TestPerformGetRequestBadStatusCode(t *testing.T) {
+func TestPerformGetRequest_BadStatusCode(t *testing.T) {
 	statusCode := 404
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(statusCode)
