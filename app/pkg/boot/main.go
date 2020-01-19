@@ -91,13 +91,13 @@ func main() {
 	}
 }
 
-func setTelegramBot(conf *config.Config, logger *logrus.Logger, db *bitcask.Bitcask, globalQueue *broker.MessageBroker) {
+func setTelegramBot(conf *config.Config, logger *logrus.Logger, db *bitcask.Bitcask, broker broker.MessageBroker) {
 	if conf.BotEnabled {
 		botApi, err := tgbotapi.NewBotAPI(conf.BotToken)
 		if err != nil {
 			logger.Fatalf("Unable to authorize to telegram bot API: %v", err)
 		}
-		bot := telegram.NewBot(botApi, db, globalQueue, conf, logger)
+		bot := telegram.NewBot(botApi, db, broker, conf, logger)
 		bot.Start()
 	}
 }
@@ -131,7 +131,7 @@ func setLogger(config *config.Config, logger *logrus.Logger) {
 	}
 }
 
-func setCache(cache caching.ProjectsCache, broker *broker.MessageBroker, logger *logrus.Logger) {
+func setCache(cache caching.ProjectsCache, broker broker.MessageBroker, logger *logrus.Logger) {
 	if err := broker.AddTopic(UpdateCacheTopic); err != nil {
 
 	}

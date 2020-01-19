@@ -15,12 +15,12 @@ const (
 // SocketHandler handles messages from global queue to websockets.
 type SocketHandler struct {
 	*melody.Melody
-	queue *broker.MessageBroker
+	queue broker.MessageBroker
 	Log   *logrus.Logger
 }
 
 // Create new SocketHandler instance
-func NewSocketHandler(wsHandler *melody.Melody, queue *broker.MessageBroker, logger *logrus.Logger) *SocketHandler {
+func NewSocketHandler(wsHandler *melody.Melody, queue broker.MessageBroker, logger *logrus.Logger) *SocketHandler {
 	handler := SocketHandler{wsHandler, queue, logger}
 	handler.queue.AddTopic(SocketTopic)
 	handler.queue.Subscribe(SocketTopic, func(message interface{}) {

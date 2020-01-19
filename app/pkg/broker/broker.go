@@ -15,23 +15,29 @@ const (
 
 type Consumer func(interface{})
 
-// MessageBroker consists of several topics,
+type MessageBroker interface {
+	AddTopic(name string) error
+	Publish(topicName string, message interface{}) error
+	Subscribe(topicName string, consumer Consumer) error
+}
+
+// messageBroker consists of several topics,
 // consumers can subscribe on them.
-type MessageBroker struct {
+type messageBroker struct {
 	topics map[string]chan interface{}
 	lock   *sync.Mutex
 }
 
-// Returns pointer to new MessageBroker instance.
-func New() *MessageBroker {
-	result := MessageBroker{}
+// Returns pointer to new messageBroker instance.
+func New() MessageBroker {
+	result := messageBroker{}
 	result.topics = make(map[string]chan interface{})
 	result.lock = new(sync.Mutex)
 	return &result
 }
 
 // Adds new topic in queue, if topic with given name exists nothing will happen.
-func (b *MessageBroker) AddTopic(name string) error {
+func (b *messageBroker) AddTopic(name string) error {
 	if name == "" {
 		return fmt.Errorf(topicNameIsEmpty)
 	}
@@ -45,7 +51,7 @@ func (b *MessageBroker) AddTopic(name string) error {
 
 // Publishes message in topic.
 // Blocks if subscriber for this topicName hasn't been set.
-func (b *MessageBroker) Publish(topicName string, message interface{}) error {
+func (b *messageBroker) Publish(topicName string, message interface{}) error {
 	topic, ok := b.topics[topicName]
 	if ok {
 		topic <- message
@@ -56,7 +62,7 @@ func (b *MessageBroker) Publish(topicName string, message interface{}) error {
 }
 
 // Binds consuming functions to queue topic.
-func (b *MessageBroker) Subscribe(topicName string, consumer Consumer) error {
+func (b *messageBroker) Subscribe(topicName string, consumer Consumer) error {
 	if consumer == nil {
 		return fmt.Errorf(consumerIsNil)
 	}

@@ -14,8 +14,9 @@ func TestMessageBroker_AddTopic_Success(t *testing.T) {
 	b := New()
 	err := b.AddTopic(topic1)
 	if assert.NoError(t, err) {
-		assert.Equal(t, 1, len(b.topics))
-		assert.Contains(t, b.topics, topic1)
+		topics := b.(*messageBroker).topics
+		assert.Equal(t, 1, len(topics))
+		assert.Contains(t, topics, topic1)
 	}
 }
 
@@ -24,7 +25,8 @@ func TestMessageBroker_AddTopic_Error(t *testing.T) {
 	b := New()
 	err := b.AddTopic(topicName)
 	if assert.EqualError(t, err, topicNameIsEmpty) {
-		assert.Empty(t, b.topics)
+		topics := b.(*messageBroker).topics
+		assert.Empty(t, topics)
 	}
 }
 

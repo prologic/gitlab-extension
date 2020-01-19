@@ -227,7 +227,7 @@ func (handler *ProxyHandler) getPipelines(
 func (handler *ProxyHandler) getCommitForProject(
 	projectId int64,
 	sha string,
-	logger *logrus.Entry) (result contracts.Commit, err error) {
+	logger *logrus.Entry) (result *contracts.Commit, err error) {
 
 	url := fmt.Sprintf("%s/projects/%d/repository/commits/%s", handler.gitlabApiV4Url, projectId, sha)
 	response, err := handler.performGetRequest(url, logger)
@@ -240,7 +240,7 @@ func (handler *ProxyHandler) getCommitForProject(
 	if err != nil {
 		return
 	}
-	result = contracts.Commit{
+	result = &contracts.Commit{
 		Title:     rawJson["title"].(string),
 		CreatedAt: rawJson["created_at"].(string),
 		Author:    rawJson["author_name"].(string),

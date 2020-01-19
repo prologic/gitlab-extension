@@ -27,7 +27,7 @@ type Bot struct {
 	*tgbotapi.BotAPI
 	*config.Config
 	db        *bitcask.Bitcask
-	queue     *broker.MessageBroker
+	queue     broker.MessageBroker
 	logger    *logrus.Entry
 	updatesCh tgbotapi.UpdatesChannel
 }
@@ -36,7 +36,7 @@ type Bot struct {
 func NewBot(
 	botApi *tgbotapi.BotAPI,
 	db *bitcask.Bitcask,
-	queue *broker.MessageBroker,
+	queue broker.MessageBroker,
 	config *config.Config,
 	logger *logrus.Logger) *Bot {
 

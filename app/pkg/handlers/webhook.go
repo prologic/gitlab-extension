@@ -10,13 +10,13 @@ import (
 
 // WebhookHandler handles http message from gitlab webhook pushes.
 type WebhookHandler struct {
-	queue     *broker.MessageBroker
+	queue     broker.MessageBroker
 	Log       *logrus.Logger
 	publishTo []string
 }
 
 // Create new WebhookHandler instance.
-func NewWebhookHandler(queue *broker.MessageBroker, publishTo []string, log *logrus.Logger) *WebhookHandler {
+func NewWebhookHandler(queue broker.MessageBroker, publishTo []string, log *logrus.Logger) *WebhookHandler {
 	for _, topicName := range publishTo {
 		queue.AddTopic(topicName)
 	}
