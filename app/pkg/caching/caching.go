@@ -3,46 +3,38 @@ package caching
 import (
 	"fmt"
 	externalCache "github.com/patrickmn/go-cache"
-	"github.com/ricdeau/gitlab-extension/app/pkg/broker"
 	"github.com/ricdeau/gitlab-extension/app/pkg/contracts"
-	"github.com/sirupsen/logrus"
 	"sync"
 	"time"
 )
 
+const cacheKey = "GitlabProjects"
+
+// Errors
 const (
-	cacheKey         = "GitlabProjects"
-	UpdateCacheTopic = "cache"
+	cacheNoObject    = "cache doesn't contains object"
+	cacheInvalidType = "cached object type is invalid: %T"
 )
 
 type ProjectsCache interface {
 	GetProjects() (projects []contracts.Project, exists bool)
 	SetProjects(projects []contracts.Project)
-	UpdatePipeline(pipelinePush contracts.PipelinePush) (err error)
+	UpdatePipeline(pipelinePush contracts.PipelinePush) error
 }
 
-type Cache struct {
+type cache struct {
 	*externalCache.Cache
 	*sync.Mutex
-	queue *broker.MessageBroker
 }
 
-func NewCache(externalCache *externalCache.Cache, queue *broker.MessageBroker, logger *logrus.Logger) *Cache {
-	result := Cache{}
-	result.Cache = externalCache
-	result.queue = queue
+func New(defaultExpiration time.Duration) ProjectsCache {
+	result := new(cache)
+	result.Cache = externalCache.New(defaultExpiration, 0)
 	result.Mutex = new(sync.Mutex)
-	result.queue.AddTopic(UpdateCacheTopic)
-	result.queue.Subscribe(UpdateCacheTopic, func(message interface{}) {
-		err := result.UpdatePipeline(message.(contracts.PipelinePush))
-		if err != nil {
-			logger.Errorf("Error while updating cache: %v", err)
-		}
-	})
-	return &result
+	return result
 }
 
-func (c *Cache) GetProjects() (projects []contracts.Project, exists bool) {
+func (c *cache) GetProjects() (projects []contracts.Project, exists bool) {
 	c.Lock()
 	defer c.Unlock()
 	cached, exists := c.Get(cacheKey)
@@ -52,20 +44,23 @@ func (c *Cache) GetProjects() (projects []contracts.Project, exists bool) {
 	return
 }
 
-func (c *Cache) SetProjects(projects []contracts.Project) {
+func (c *cache) SetProjects(projects []contracts.Project) {
 	c.Lock()
 	defer c.Unlock()
 	c.SetDefault(cacheKey, projects)
 }
 
-func (c *Cache) UpdatePipeline(pipelinePush contracts.PipelinePush) (err error) {
+func (c *cache) UpdatePipeline(pipelinePush contracts.PipelinePush) (err error) {
 	c.Lock()
 	defer c.Unlock()
 	cached, expiration, exists := c.GetWithExpiration(cacheKey)
 	if !exists {
-		return fmt.Errorf("cache doesn't contains object")
+		return fmt.Errorf(cacheNoObject)
 	}
-	projects := cached.([]contracts.Project)
+	projects, ok := cached.([]contracts.Project)
+	if !ok {
+		return fmt.Errorf(cacheInvalidType, cached)
+	}
 	for i := 0; i < len(projects); i++ {
 		if projects[i].Id == pipelinePush.Project.Id {
 			pipelineExists := false
@@ -82,7 +77,7 @@ func (c *Cache) UpdatePipeline(pipelinePush contracts.PipelinePush) (err error) 
 					Branch: pipelinePush.Attributes.Branch,
 					Status: pipelinePush.Attributes.Status,
 					WebUrl: pipelinePush.Commit.Url,
-					Commit: contracts.Commit{
+					Commit: &contracts.Commit{
 						Title:     pipelinePush.Commit.Message,
 						CreatedAt: pipelinePush.Commit.Timestamp,
 						Author:    pipelinePush.Commit.Author.Name,

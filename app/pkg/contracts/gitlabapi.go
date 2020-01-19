@@ -10,16 +10,16 @@ type Project struct {
 }
 
 type Pipeline struct {
-	Id     int64  `json:"id"`
-	Sha    string `json:"sha"`
-	Branch string `json:"branch"`
-	Status string `json:"status"`
-	WebUrl string `json:"web_url"`
-	Commit Commit `json:"commit"`
+	Id     int64   `json:"id"`
+	Sha    string  `json:"sha"`
+	Branch string  `json:"branch"`
+	Status string  `json:"status"`
+	WebUrl string  `json:"web_url"`
+	Commit *Commit `json:"PipelineCommit"`
 }
 
 type Commit struct {
 	Title     string `json:"title"`
 	CreatedAt string `json:"created_at"`
-	Author    string `json:"author"`
+	Author    string `json:"Author"`
 }

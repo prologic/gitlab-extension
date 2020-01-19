@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-type logger interface {
+type Logger interface {
 	Infof(format string, args ...interface{})
 	Warnf(format string, args ...interface{})
 	Errorf(format string, args ...interface{})
@@ -19,7 +19,7 @@ func PerformGetRequest(
 	client *http.Client,
 	url string,
 	headers map[string]string,
-	logger logger) (resp *http.Response, err error) {
+	logger Logger) (resp *http.Response, err error) {
 
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {

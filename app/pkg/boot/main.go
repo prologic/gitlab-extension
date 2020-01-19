@@ -4,11 +4,11 @@ import (
 	"flag"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
-	externalCache "github.com/patrickmn/go-cache"
 	"github.com/prologic/bitcask"
 	"github.com/ricdeau/gitlab-extension/app/pkg/broker"
 	"github.com/ricdeau/gitlab-extension/app/pkg/caching"
 	"github.com/ricdeau/gitlab-extension/app/pkg/config"
+	"github.com/ricdeau/gitlab-extension/app/pkg/contracts"
 	"github.com/ricdeau/gitlab-extension/app/pkg/handlers"
 	"github.com/ricdeau/gitlab-extension/app/pkg/logging"
 	"github.com/ricdeau/gitlab-extension/app/pkg/telegram"
@@ -30,25 +30,28 @@ const (
 	configFileFlagUsage   = "Configuration file path"
 )
 
+const (
+	UpdateCacheTopic = "cache"
+)
+
 func main() {
 	configFile := flag.String("config", defaultConfigFilePath, configFileFlagUsage)
 	flag.Parse()
 
-	// set logger
 	logger := logrus.New()
 	logger.SetFormatter(&logrus.JSONFormatter{
 		TimestampFormat: timestampFormat,
 		PrettyPrint:     false,
 	})
-
-	// set config
 	conf := config.Get(*configFile, logger)
 
-	// sel logging targets
-	setLogger(conf, logger)
+	router := gin.New()
+	msgBroker := broker.New()
+	cache := caching.New(1 * time.Hour)
 
-	// set router
-	router := setRouter(logger)
+	setLogger(conf, logger)
+	setRouter(router, logger)
+	setCache(cache, msgBroker, logger)
 
 	// set websocket handler
 	wsHandler := melody.New()
@@ -60,14 +63,8 @@ func main() {
 		logger.Errorf("Error while closing db: %v", err)
 	}()
 
-	// set global queue
-	globalQueue := broker.New()
-
-	// set cache
-	cache := caching.NewCache(externalCache.New(60*time.Minute, -1), globalQueue, logger)
-
 	// set telegram bot
-	setTelegramBot(conf, logger, db, globalQueue)
+	setTelegramBot(conf, logger, db, msgBroker)
 
 	//set html handler
 	router.Use(handlers.Serve("/", handlers.LocalFile("./www", true)))
@@ -77,15 +74,15 @@ func main() {
 	router.GET("/projects", proxyHandler.Handle)
 
 	// set socket handler
-	socketHandler := handlers.NewSocketHandler(wsHandler, globalQueue, logger)
+	socketHandler := handlers.NewSocketHandler(wsHandler, msgBroker, logger)
 	router.GET("/ws", socketHandler.Handle)
 
 	// set webhook handler
-	topics := []string{handlers.SocketTopic, caching.UpdateCacheTopic}
+	topics := []string{handlers.SocketTopic, UpdateCacheTopic}
 	if conf.BotEnabled {
 		topics = append(topics, telegram.BotTopic)
 	}
-	webhookHandler := handlers.NewWebhookHandler(globalQueue, topics, logger)
+	webhookHandler := handlers.NewWebhookHandler(msgBroker, topics, logger)
 	router.POST("/webhook", webhookHandler.Handle)
 
 	err = router.Run(fmt.Sprintf(":%d", conf.Port))
@@ -105,8 +102,7 @@ func setTelegramBot(conf *config.Config, logger *logrus.Logger, db *bitcask.Bitc
 	}
 }
 
-func setRouter(logger *logrus.Logger) *gin.Engine {
-	router := gin.New()
+func setRouter(router *gin.Engine, logger *logrus.Logger) {
 	router.Use(logging.Logger(logger))
 	router.Use(gin.Recovery())
 	router.Use(cors.New(cors.Config{
@@ -117,7 +113,6 @@ func setRouter(logger *logrus.Logger) *gin.Engine {
 		AllowHeaders:     []string{"Content-Type"},
 		ExposeHeaders:    []string{"Content-Length"},
 	}))
-	return router
 }
 
 func setLogger(config *config.Config, logger *logrus.Logger) {
@@ -133,5 +128,24 @@ func setLogger(config *config.Config, logger *logrus.Logger) {
 		logger.SetOutput(ioutil.Discard)
 	} else {
 		logger.SetOutput(io.MultiWriter(writers...))
+	}
+}
+
+func setCache(cache caching.ProjectsCache, broker *broker.MessageBroker, logger *logrus.Logger) {
+	if err := broker.AddTopic(UpdateCacheTopic); err != nil {
+
+	}
+	err := broker.Subscribe(UpdateCacheTopic, func(message interface{}) {
+		push, ok := message.(contracts.PipelinePush)
+		if !ok {
+			logger.Errorf("Invalid message type: %T", message)
+		}
+		err := cache.UpdatePipeline(push)
+		if err != nil {
+			logger.Errorf("Error while updating cache: %v", err)
+		}
+	})
+	if err != nil {
+		logger.Fatalf("Set cache error: %v", err)
 	}
 }
