@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"github.com/ricdeau/gitlab-extension/app/tests"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"io/ioutil"
@@ -12,22 +13,6 @@ import (
 	"testing"
 )
 
-type mockLogger struct {
-	mock.Mock
-}
-
-func (m *mockLogger) Infof(_ string, _ ...interface{}) {
-	m.Called()
-}
-
-func (m *mockLogger) Warnf(_ string, _ ...interface{}) {
-	m.Called()
-}
-
-func (m *mockLogger) Errorf(_ string, _ ...interface{}) {
-	m.Called()
-}
-
 func TestPerformGetRequest_Success(t *testing.T) {
 	expected := []byte("success")
 
@@ -36,7 +21,7 @@ func TestPerformGetRequest_Success(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	logger := new(mockLogger)
+	logger := new(tests.MockLogger)
 	logger.On("Infof").Once()
 
 	client := ts.Client()
@@ -60,7 +45,7 @@ func TestPerformGetRequest_Success(t *testing.T) {
 func TestPerformGetRequest_Error(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 
-	logger := new(mockLogger)
+	logger := new(tests.MockLogger)
 	logger.On("Infof").Once()
 	logger.On("Errorf").Once()
 
@@ -88,7 +73,7 @@ func TestPerformGetRequest_BadStatusCode(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	logger := new(mockLogger)
+	logger := new(tests.MockLogger)
 	logger.On("Infof").Once()
 	logger.On("Errorf").Once()
 

@@ -4,36 +4,39 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/ricdeau/gitlab-extension/app/pkg/broker"
 	"github.com/ricdeau/gitlab-extension/app/pkg/contracts"
-	"github.com/sirupsen/logrus"
 	"net/http"
 )
 
 // WebhookHandler handles http message from gitlab webhook pushes.
 type WebhookHandler struct {
-	queue     broker.MessageBroker
-	Log       *logrus.Logger
+	broker    broker.MessageBroker
 	publishTo []string
 }
 
 // Create new WebhookHandler instance.
-func NewWebhookHandler(queue broker.MessageBroker, publishTo []string, log *logrus.Logger) *WebhookHandler {
-	for _, topicName := range publishTo {
-		queue.AddTopic(topicName)
-	}
-	return &WebhookHandler{queue, log, publishTo}
+func NewWebhookHandler(broker broker.MessageBroker, publishTo ...string) *WebhookHandler {
+	return &WebhookHandler{broker, publishTo}
 }
 
 // Publishes http message to global queue topic.
-func (handler *WebhookHandler) Handle(c *gin.Context) {
+func (handler *WebhookHandler) Handle(c Context) {
+	logger := c.GetLogger()
+	if logger == nil {
+		c.SetStatusCode(http.StatusInternalServerError)
+		return
+	}
 	var message contracts.PipelinePush
 	if err := c.ShouldBindJSON(&message); err != nil {
+		logger.Errorf("Request body doesn't match type: %T", message)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	for _, topicName := range handler.publishTo {
-		handler.Log.Infof("Publishing message %+v to topic %s", message, topicName)
-		handler.queue.Publish(topicName, message)
+		logger.Infof("Publishing message %+v to topic %s", message, topicName)
+		if err := handler.broker.Publish(topicName, message); err != nil {
+			logger.Errorf("Message publishing error: %v", err)
+		}
 	}
-	c.Status(http.StatusOK)
+	c.SetStatusCode(http.StatusOK)
 }
