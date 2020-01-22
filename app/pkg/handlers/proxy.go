@@ -50,7 +50,7 @@ func NewProxyHandler(conf *config.Config, cache caching.ProjectsCache, logger *l
 	return instance
 }
 
-// Handle '/projects' request
+// CreateHandler '/projects' request
 func (handler *ProxyHandler) Handle(c *gin.Context) {
 
 	corrId, exists := c.Get(logging.CorrelationIdKey)

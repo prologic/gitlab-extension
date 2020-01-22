@@ -8,18 +8,21 @@ import (
 )
 
 // WebhookHandler handles http message from gitlab webhook pushes.
-type WebhookHandler struct {
+type webhookHandler struct {
 	broker    broker.MessageBroker
 	publishTo []string
 }
 
-// Create new WebhookHandler instance.
-func NewWebhookHandler(broker broker.MessageBroker, publishTo ...string) *WebhookHandler {
-	return &WebhookHandler{broker, publishTo}
+// Creates new WebhookHandler instance.
+func NewWebhook(broker broker.MessageBroker, publishTo ...string) HandlerFunc {
+	handler := &webhookHandler{broker, publishTo}
+	return func(c Context) {
+		handler.handle(c)
+	}
 }
 
 // Publishes http message to global queue topic.
-func (handler *WebhookHandler) Handle(c Context) {
+func (handler *webhookHandler) handle(c Context) {
 	logger := c.GetLogger()
 	if logger == nil {
 		c.SetStatusCode(http.StatusInternalServerError)

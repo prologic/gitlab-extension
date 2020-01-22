@@ -3,7 +3,7 @@ package tests
 import (
 	"fmt"
 	"github.com/ricdeau/gitlab-extension/app/pkg/broker"
-	"github.com/ricdeau/gitlab-extension/app/pkg/utils"
+	"github.com/ricdeau/gitlab-extension/app/pkg/logging"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -54,7 +54,7 @@ type MockContext struct {
 	Status    int
 	BindJSON  func(interface{}) error
 	Json      func(int, interface{})
-	Logger    func() utils.Logger
+	Logger    func() logging.Logger
 	SetStatus func(int)
 }
 
@@ -63,7 +63,7 @@ func DefaultMockContext() *MockContext {
 		Mock:      mock.Mock{},
 		BindJSON:  func(interface{}) error { return nil },
 		Json:      func(int, interface{}) {},
-		Logger:    func() utils.Logger { return nil },
+		Logger:    func() logging.Logger { return nil },
 		SetStatus: nil,
 	}
 	result.SetStatus = func(code int) {
@@ -85,10 +85,10 @@ func (m *MockContext) JSON(code int, obj interface{}) {
 	m.Json(code, obj)
 }
 
-func (m *MockContext) SetLogger(_ utils.Logger) {
+func (m *MockContext) SetLogger(_ logging.Logger) {
 }
 
-func (m *MockContext) GetLogger() utils.Logger {
+func (m *MockContext) GetLogger() logging.Logger {
 	m.Called()
 	return m.Logger()
 }

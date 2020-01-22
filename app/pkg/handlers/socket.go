@@ -36,7 +36,7 @@ func NewSocketHandler(wsHandler *melody.Melody, queue broker.MessageBroker, logg
 	return &handler
 }
 
-// Handle http message. Just a stub.
+// CreateHandler http message. Just a stub.
 func (handler *SocketHandler) Handle(c *gin.Context) {
 	err := handler.HandleRequest(c.Writer, c.Request)
 	if err != nil {

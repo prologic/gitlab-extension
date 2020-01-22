@@ -3,7 +3,7 @@ package handlers
 import (
 	"fmt"
 	"github.com/ricdeau/gitlab-extension/app/pkg/contracts"
-	"github.com/ricdeau/gitlab-extension/app/pkg/utils"
+	"github.com/ricdeau/gitlab-extension/app/pkg/logging"
 	"github.com/ricdeau/gitlab-extension/app/tests"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -13,8 +13,9 @@ import (
 
 func TestNewWebhookHandler(t *testing.T) {
 	mockBroker := new(tests.MockMessageBroker)
-	h := NewWebhookHandler(mockBroker)
-	assert.NotNil(t, h)
+	actual := NewWebhook(mockBroker)
+	assert.NotNil(t, actual)
+	assert.IsType(t, HandlerFunc(nil), actual)
 }
 
 func TestWebhookHandler_Handle_Success(t *testing.T) {
@@ -35,12 +36,12 @@ func TestWebhookHandler_Handle_Success(t *testing.T) {
 		v.Set(reflect.ValueOf(contracts.PipelinePush{Kind: kind}))
 		return nil
 	}
-	mockCtx.Logger = func() utils.Logger {
+	mockCtx.Logger = func() logging.Logger {
 		return mockLogger
 	}
 
-	h := NewWebhookHandler(mockBroker, topic)
-	h.Handle(mockCtx)
+	handlerFunc := NewWebhook(mockBroker, topic)
+	handlerFunc(mockCtx)
 
 	assert.Equal(t, http.StatusOK, mockCtx.Status)
 }
@@ -55,12 +56,12 @@ func TestWebhookHandler_Handle_NoTopics(t *testing.T) {
 	mockCtx.BindJSON = func(m interface{}) error {
 		return nil
 	}
-	mockCtx.Logger = func() utils.Logger {
+	mockCtx.Logger = func() logging.Logger {
 		return mockLogger
 	}
 
-	h := NewWebhookHandler(mockBroker)
-	h.Handle(mockCtx)
+	handlerFunc := NewWebhook(mockBroker)
+	handlerFunc(mockCtx)
 
 	assert.Equal(t, http.StatusOK, mockCtx.Status)
 }
@@ -76,12 +77,12 @@ func TestWebhookHandler_Handle_BadRequests(t *testing.T) {
 	mockCtx.BindJSON = func(interface{}) error {
 		return fmt.Errorf("json error")
 	}
-	mockCtx.Logger = func() utils.Logger {
+	mockCtx.Logger = func() logging.Logger {
 		return mockLogger
 	}
 
-	h := NewWebhookHandler(mockBroker)
-	h.Handle(mockCtx)
+	handlerFunc := NewWebhook(mockBroker)
+	handlerFunc(mockCtx)
 
 	assert.Equal(t, http.StatusBadRequest, mockCtx.Status)
 }
@@ -105,12 +106,12 @@ func TestWebhookHandler_Handle_PublishError(t *testing.T) {
 	mockCtx.BindJSON = func(interface{}) error {
 		return nil
 	}
-	mockCtx.Logger = func() utils.Logger {
+	mockCtx.Logger = func() logging.Logger {
 		return mockLogger
 	}
 
-	h := NewWebhookHandler(mockBroker, topic1, topic2)
-	h.Handle(mockCtx)
+	handlerFunc := NewWebhook(mockBroker, topic1, topic2)
+	handlerFunc(mockCtx)
 
 	assert.Equal(t, http.StatusOK, mockCtx.Status)
 }
@@ -125,8 +126,8 @@ func TestWebhookHandler_Handle_NoLogger(t *testing.T) {
 	mockCtx.On("SetStatusCode").Once()
 	mockBroker := new(tests.MockMessageBroker)
 
-	h := NewWebhookHandler(mockBroker, topic1, topic2)
-	h.Handle(mockCtx)
+	handlerFunc := NewWebhook(mockBroker, topic1, topic2)
+	handlerFunc(mockCtx)
 
 	assert.Equal(t, http.StatusInternalServerError, mockCtx.Status)
 }

@@ -2,14 +2,9 @@ package utils
 
 import (
 	"fmt"
+	"github.com/ricdeau/gitlab-extension/app/pkg/logging"
 	"net/http"
 )
-
-type Logger interface {
-	Infof(format string, args ...interface{})
-	Warnf(format string, args ...interface{})
-	Errorf(format string, args ...interface{})
-}
 
 // PerformGetRequest - performs GET request with Private-Token header and returns response.
 // client - http client to perform request
@@ -19,7 +14,7 @@ func PerformGetRequest(
 	client *http.Client,
 	url string,
 	headers map[string]string,
-	logger Logger) (resp *http.Response, err error) {
+	logger logging.Logger) (resp *http.Response, err error) {
 
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {

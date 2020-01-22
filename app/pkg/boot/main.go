@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/gin-contrib/cors"
+	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/olahol/melody.v1"
@@ -67,7 +68,7 @@ func main() {
 	setTelegramBot(conf, logger, db, msgBroker)
 
 	//set html handler
-	router.Use(handlers.Serve("/", handlers.LocalFile("./www", true)))
+	router.Use(static.Serve("/", static.LocalFile("./www", true)))
 
 	// set proxy handler
 	proxyHandler := handlers.NewProxyHandler(conf, cache, logger)
@@ -82,8 +83,8 @@ func main() {
 	if conf.BotEnabled {
 		topics = append(topics, telegram.BotTopic)
 	}
-	webhookHandler := handlers.NewWebhookHandler(msgBroker, topics, logger)
-	router.POST("/webhook", webhookHandler.Handle)
+	webhookHandler := handlers.NewWebhook(msgBroker, topics...)
+	router.POST("/webhook", webhookHandler.CreateHandler())
 
 	err = router.Run(fmt.Sprintf(":%d", conf.Port))
 	if err != nil {
@@ -103,7 +104,7 @@ func setTelegramBot(conf *config.Config, logger *logrus.Logger, db *bitcask.Bitc
 }
 
 func setRouter(router *gin.Engine, logger *logrus.Logger) {
-	router.Use(logging.Logger(logger))
+	router.Use(logging.Middleware(logger))
 	router.Use(gin.Recovery())
 	router.Use(cors.New(cors.Config{
 		AllowCredentials: true,
