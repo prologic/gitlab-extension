@@ -61,7 +61,7 @@ func (handler *ProxyHandler) Handle(c *gin.Context) {
 
 	// parse project ids
 	projectIdsParam := c.Query("project_ids")
-	var projectIds []int64
+	projectIds := make(map[int64]struct{})
 	if projectIdsParam != "" {
 		for _, idParam := range strings.Split(projectIdsParam, " ") {
 			id, err := strconv.ParseInt(idParam, 10, 64)
@@ -69,16 +69,16 @@ func (handler *ProxyHandler) Handle(c *gin.Context) {
 				logger.Warnf("Invalid projectId %s will be skipped", idParam)
 				continue
 			}
-			projectIds = append(projectIds, id)
+			projectIds[id] = struct{}{}
 		}
 	}
 
 	// parse branches
 	branchesParam := c.Query("branches")
-	var branches []string
+	branches := make(map[string]struct{})
 	if branchesParam != "" {
 		for _, branchParam := range strings.Split(branchesParam, " ") {
-			branches = append(branches, branchParam)
+			branches[branchParam] = struct{}{}
 		}
 	}
 
@@ -103,22 +103,29 @@ func (handler *ProxyHandler) Handle(c *gin.Context) {
 // projectIds - Ids of gitlab projects to filter
 // branches - Branches to filter pipelines
 func (handler *ProxyHandler) filterProjects(
-	projects []contracts.Project, projectIds []int64, branches []string) (result []contracts.Project) {
-	//
-	//for _, proj := range projects {
-	//	if funk.Any(projectIds) && !funk.Contains(projectIds, proj.Id) {
-	//		continue
-	//	}
-	//	var filteredPipelines []contracts.Pipeline
-	//	for _, pipe := range proj.Pipelines {
-	//		if funk.Any(branches) && !funk.Contains(branches, pipe.Branch) {
-	//			continue
-	//		}
-	//		filteredPipelines = append(filteredPipelines, pipe)
-	//	}
-	//	proj.Pipelines = filteredPipelines
-	//	result = append(result, proj)
-	//}
+	projects []contracts.Project, projectIds map[int64]struct{}, branches map[string]struct{}) (result []contracts.Project) {
+
+	for _, project := range projects {
+		if len(projectIds) != 0 {
+			_, exist := projectIds[project.Id]
+			if !exist {
+				continue
+			}
+		}
+		var filteredPipelines []contracts.Pipeline
+
+		for _, pipe := range project.Pipelines {
+			if len(branches) != 0 {
+				_, exist := branches[pipe.Branch]
+				if !exist {
+					continue
+				}
+				filteredPipelines = append(filteredPipelines, pipe)
+			}
+		}
+		project.Pipelines = filteredPipelines
+		result = append(result, project)
+	}
 	return
 }
 
