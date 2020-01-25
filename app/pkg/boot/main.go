@@ -33,6 +33,7 @@ const (
 
 const (
 	UpdateCacheTopic = "cache"
+	SocketTopic      = "ws"
 )
 
 func main() {
@@ -54,9 +55,6 @@ func main() {
 	setRouter(router, logger)
 	setCache(cache, msgBroker, logger)
 
-	// set websocket handler
-	wsHandler := melody.New()
-
 	// set embedded db
 	db, err := bitcask.Open("db")
 	defer func() {
@@ -75,11 +73,11 @@ func main() {
 	router.GET("/projects", proxyHandler.Handle)
 
 	// set socket handler
-	socketHandler := handlers.NewSocketHandler(wsHandler, msgBroker, logger)
-	router.GET("/ws", socketHandler.Handle)
+	socket := configureSocketHandler(msgBroker, logger)
+	router.GET("/ws", socket.CreateHandler())
 
 	// set webhook handler
-	topics := []string{handlers.SocketTopic, UpdateCacheTopic}
+	topics := []string{SocketTopic, UpdateCacheTopic}
 	if conf.BotEnabled {
 		topics = append(topics, telegram.BotTopic)
 	}
@@ -149,4 +147,9 @@ func setCache(cache caching.ProjectsCache, broker broker.MessageBroker, logger *
 	if err != nil {
 		logger.Fatalf("Set cache error: %v", err)
 	}
+}
+
+func configureSocketHandler(broker broker.MessageBroker, logger logging.Logger) handlers.HandlerFunc {
+	broadcaster := melody.New()
+	return handlers.NewSocket(SocketTopic, broadcaster, broker, logger)
 }

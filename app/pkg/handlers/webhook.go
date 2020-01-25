@@ -21,7 +21,7 @@ func NewWebhook(broker broker.MessageBroker, publishTo ...string) HandlerFunc {
 	}
 }
 
-// Publishes http message to global queue topic.
+// Publishes http message to global broker topic.
 func (handler *webhookHandler) handle(c Context) {
 	logger := c.GetLogger()
 	if logger == nil {

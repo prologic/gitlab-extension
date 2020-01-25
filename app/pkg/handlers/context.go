@@ -3,6 +3,7 @@ package handlers
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/ricdeau/gitlab-extension/app/pkg/logging"
+	"net/http"
 )
 
 const eventLogger = "eventLogger"
@@ -21,6 +22,8 @@ type Context interface {
 	SetLogger(logger logging.Logger)
 	GetLogger() logging.Logger
 	SetStatusCode(code int)
+	GetWriter() http.ResponseWriter
+	GetRequest() *http.Request
 }
 
 type GinContext struct {
@@ -42,4 +45,12 @@ func (c *GinContext) GetLogger() logging.Logger {
 
 func (c *GinContext) SetStatusCode(code int) {
 	c.Status(code)
+}
+
+func (c *GinContext) GetWriter() http.ResponseWriter {
+	return c.Writer
+}
+
+func (c *GinContext) GetRequest() *http.Request {
+	return c.Request
 }

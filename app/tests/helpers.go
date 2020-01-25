@@ -5,6 +5,8 @@ import (
 	"github.com/ricdeau/gitlab-extension/app/pkg/broker"
 	"github.com/ricdeau/gitlab-extension/app/pkg/logging"
 	"github.com/stretchr/testify/mock"
+	"net/http"
+	"net/http/httptest"
 )
 
 type MockLogger struct {
@@ -42,7 +44,7 @@ func (m *MockMessageBroker) Publish(topicName string, message interface{}) error
 }
 
 func (m *MockMessageBroker) Subscribe(topicName string, consumer broker.Consumer) error {
-	m.Called(topicName, consumer)
+	m.Called()
 	if m.SubscribeError {
 		return fmt.Errorf("subscribe error")
 	}
@@ -96,4 +98,41 @@ func (m *MockContext) GetLogger() logging.Logger {
 func (m *MockContext) SetStatusCode(code int) {
 	m.Called()
 	m.SetStatus(code)
+}
+
+func (m *MockContext) GetWriter() http.ResponseWriter {
+	m.Called()
+	return new(httptest.ResponseRecorder)
+}
+
+func (m *MockContext) GetRequest() *http.Request {
+	m.Called()
+	return nil
+}
+
+type MockBroadcaster struct {
+	mock.Mock
+	BroadcastFunc     func([]byte) error
+	HandleRequestFunc func(http.ResponseWriter, *http.Request) error
+}
+
+func DefaultMockBroadcaster() *MockBroadcaster {
+	result := new(MockBroadcaster)
+	result.BroadcastFunc = func([]byte) error {
+		return nil
+	}
+	result.HandleRequestFunc = func(http.ResponseWriter, *http.Request) error {
+		return nil
+	}
+	return result
+}
+
+func (m *MockBroadcaster) Broadcast(msg []byte) error {
+	m.Called(msg)
+	return m.BroadcastFunc(msg)
+}
+
+func (m *MockBroadcaster) HandleRequest(w http.ResponseWriter, r *http.Request) error {
+	m.Called()
+	return m.HandleRequestFunc(w, r)
 }

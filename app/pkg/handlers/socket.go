@@ -2,44 +2,51 @@ package handlers
 
 import (
 	"encoding/json"
-	"github.com/gin-gonic/gin"
 	"github.com/ricdeau/gitlab-extension/app/pkg/broker"
-	"github.com/sirupsen/logrus"
-	"gopkg.in/olahol/melody.v1"
+	"github.com/ricdeau/gitlab-extension/app/pkg/logging"
+	"net/http"
 )
 
-const (
-	SocketTopic = "ws"
-)
-
-// SocketHandler handles messages from global queue to websockets.
-type SocketHandler struct {
-	*melody.Melody
-	queue broker.MessageBroker
-	Log   *logrus.Logger
+type WsBroadcaster interface {
+	Broadcast(msg []byte) error
+	HandleRequest(w http.ResponseWriter, r *http.Request) error
 }
 
-// Create new SocketHandler instance
-func NewSocketHandler(wsHandler *melody.Melody, queue broker.MessageBroker, logger *logrus.Logger) *SocketHandler {
-	handler := SocketHandler{wsHandler, queue, logger}
-	handler.queue.AddTopic(SocketTopic)
-	handler.queue.Subscribe(SocketTopic, func(message interface{}) {
+// socketHandler handles messages from global broker to websockets.
+type socketHandler struct {
+	WsBroadcaster
+	broker broker.MessageBroker
+	logger logging.Logger
+}
+
+// Create new socketHandler instance
+func NewSocket(topic string, broadcaster WsBroadcaster, broker broker.MessageBroker, logger logging.Logger) HandlerFunc {
+	handler := &socketHandler{broadcaster, broker, logger}
+	if err := handler.broker.AddTopic(topic); err != nil {
+		panic(err)
+	}
+	err := handler.broker.Subscribe(topic, func(message interface{}) {
 		msgBytes, err := json.Marshal(message)
 		if err != nil {
-			handler.Log.Errorf("error while marshaling message %v to json: %v", message, err)
+			handler.logger.Errorf("error while marshaling message %v to json: %v", message, err)
 		}
 		err = handler.Broadcast(msgBytes)
 		if err != nil {
-			handler.Log.Errorf("websocket broadcast error on message %v: %v", message, err)
+			handler.logger.Errorf("websocket broadcast error on message %v: %v", message, err)
 		}
 	})
-	return &handler
+	if err != nil {
+		panic(err)
+	}
+	return func(c Context) {
+		handler.handle(c)
+	}
 }
 
 // CreateHandler http message. Just a stub.
-func (handler *SocketHandler) Handle(c *gin.Context) {
-	err := handler.HandleRequest(c.Writer, c.Request)
+func (handler *socketHandler) handle(c Context) {
+	err := handler.HandleRequest(c.GetWriter(), c.GetRequest())
 	if err != nil {
-		handler.Log.Errorf("websocket request error: %v", err)
+		handler.logger.Errorf("websocket request error: %v", err)
 	}
 }
