@@ -3,6 +3,7 @@ package tests
 import (
 	"fmt"
 	"github.com/ricdeau/gitlab-extension/app/pkg/broker"
+	"github.com/ricdeau/gitlab-extension/app/pkg/contracts"
 	"github.com/ricdeau/gitlab-extension/app/pkg/logging"
 	"github.com/stretchr/testify/mock"
 	"net/http"
@@ -43,7 +44,7 @@ func (m *MockMessageBroker) Publish(topicName string, message interface{}) error
 	return nil
 }
 
-func (m *MockMessageBroker) Subscribe(topicName string, consumer broker.Consumer) error {
+func (m *MockMessageBroker) Subscribe(_ string, _ broker.Consumer) error {
 	m.Called()
 	if m.SubscribeError {
 		return fmt.Errorf("subscribe error")
@@ -53,11 +54,21 @@ func (m *MockMessageBroker) Subscribe(topicName string, consumer broker.Consumer
 
 type MockContext struct {
 	mock.Mock
-	Status    int
-	BindJSON  func(interface{}) error
-	Json      func(int, interface{})
-	Logger    func() logging.Logger
-	SetStatus func(int)
+	Status      int
+	BindJSON    func(interface{}) error
+	Json        func(int, interface{})
+	Logger      func() logging.Logger
+	SetStatus   func(int)
+	QueryParams map[string]string
+}
+
+func (m *MockContext) QueryParam(key string) string {
+	m.Called(key)
+	val, exist := m.QueryParams[key]
+	if exist {
+		return val
+	}
+	return ""
 }
 
 func DefaultMockContext() *MockContext {
@@ -77,12 +88,12 @@ func DefaultMockContext() *MockContext {
 	return result
 }
 
-func (m *MockContext) ShouldBindJSON(obj interface{}) error {
+func (m *MockContext) FromJson(obj interface{}) error {
 	m.Called()
 	return m.BindJSON(obj)
 }
 
-func (m *MockContext) JSON(code int, obj interface{}) {
+func (m *MockContext) ToJson(code int, obj interface{}) {
 	m.Called()
 	m.Json(code, obj)
 }
@@ -135,4 +146,26 @@ func (m *MockBroadcaster) Broadcast(msg []byte) error {
 func (m *MockBroadcaster) HandleRequest(w http.ResponseWriter, r *http.Request) error {
 	m.Called()
 	return m.HandleRequestFunc(w, r)
+}
+
+type MockProjectsCache struct {
+	mock.Mock
+	Projects []contracts.Project
+}
+
+func (m *MockProjectsCache) GetProjects() (projects []contracts.Project, exists bool) {
+	m.Called()
+	if m.Projects == nil {
+		return nil, false
+	}
+	return m.Projects, true
+}
+
+func (m *MockProjectsCache) SetProjects(projects []contracts.Project) {
+	m.Called()
+}
+
+func (m *MockProjectsCache) UpdatePipeline(pipelinePush contracts.PipelinePush) error {
+	m.Called(pipelinePush)
+	return nil
 }

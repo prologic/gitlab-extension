@@ -72,12 +72,12 @@ func (bot *Bot) Start() {
 
 			err := bot.setChatNamespaces(chatId, availableNamespaces)
 			if err != nil {
-				bot.logger.Errorf("Error while updating gitlab namespaces for chat id=%d", chatId)
+				bot.logger.Errorf("ErrorResponse while updating gitlab namespaces for chat id=%d", chatId)
 				bot.Send(chatId, "Sorry something went wrong.")
 			}
 			availableNamespaces, err = bot.getChatNamespaces(chatId)
 			if err != nil {
-				bot.logger.Errorf("Error while updating gitlab namespaces for chat id=%d", chatId)
+				bot.logger.Errorf("ErrorResponse while updating gitlab namespaces for chat id=%d", chatId)
 				bot.Send(chatId, "Sorry something went wrong.")
 			}
 			namespacesString := strings.Join(availableNamespaces, ", ")
@@ -93,7 +93,7 @@ func (bot *Bot) Send(chatId int64, text string) {
 	msg := tgbotapi.NewMessage(chatId, text)
 	reply, err := bot.BotAPI.Send(msg)
 	if err != nil {
-		bot.logger.Errorf("Error while sending message to chat id=%d", chatId)
+		bot.logger.Errorf("ErrorResponse while sending message to chat id=%d", chatId)
 	} else {
 		bot.logger.Infof("Message has been sent to chat id=%d: %v", chatId, reply.Text)
 	}
@@ -143,7 +143,7 @@ func (bot *Bot) getAvailableNamespaces(privateToken string) (result []string) {
 	var rawJson []map[string]interface{}
 	err = json.NewDecoder(response.Body).Decode(&rawJson)
 	if err != nil {
-		bot.logger.Errorf("error while decoding JSON body: %v", err)
+		bot.logger.Errorf("error while decoding ToJson body: %v", err)
 		return
 	}
 	for _, el := range rawJson {
@@ -175,7 +175,7 @@ func (bot *Bot) subscribeToTopic() {
 	//		return nil
 	//	})
 	//	if err != nil {
-	//		bot.logger.Errorf("Error while sending gitlab update to telegram: %v", err)
+	//		bot.logger.Errorf("ErrorResponse while sending gitlab update to telegram: %v", err)
 	//	}
 	//})
 }

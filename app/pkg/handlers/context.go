@@ -17,17 +17,30 @@ func (h HandlerFunc) CreateHandler() gin.HandlerFunc {
 }
 
 type Context interface {
-	ShouldBindJSON(obj interface{}) error
-	JSON(code int, obj interface{})
+	FromJson(obj interface{}) error
+	ToJson(code int, obj interface{})
 	SetLogger(logger logging.Logger)
 	GetLogger() logging.Logger
 	SetStatusCode(code int)
 	GetWriter() http.ResponseWriter
 	GetRequest() *http.Request
+	QueryParam(key string) string
 }
 
 type GinContext struct {
 	*gin.Context
+}
+
+func (c *GinContext) FromJson(obj interface{}) error {
+	return c.ShouldBind(obj)
+}
+
+func (c *GinContext) ToJson(code int, obj interface{}) {
+	c.JSON(code, obj)
+}
+
+func (c *GinContext) QueryParam(key string) string {
+	return c.Query(key)
 }
 
 func (c *GinContext) SetLogger(logger logging.Logger) {

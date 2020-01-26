@@ -25,7 +25,7 @@ func TestWebhookHandler_Handle_Success(t *testing.T) {
 	)
 	mockCtx := tests.DefaultMockContext()
 	mockCtx.On("GetLogger").Once()
-	mockCtx.On("ShouldBindJSON").Once()
+	mockCtx.On("FromJson").Once()
 	mockCtx.On("SetStatusCode").Once()
 	mockBroker := new(tests.MockMessageBroker)
 	mockBroker.On("Publish", topic, contracts.PipelinePush{Kind: kind}).Once()
@@ -49,7 +49,7 @@ func TestWebhookHandler_Handle_Success(t *testing.T) {
 func TestWebhookHandler_Handle_NoTopics(t *testing.T) {
 	mockCtx := tests.DefaultMockContext()
 	mockCtx.On("GetLogger").Once()
-	mockCtx.On("ShouldBindJSON").Once()
+	mockCtx.On("FromJson").Once()
 	mockCtx.On("SetStatusCode").Once()
 	mockBroker := new(tests.MockMessageBroker)
 	mockLogger := new(tests.MockLogger)
@@ -69,8 +69,8 @@ func TestWebhookHandler_Handle_NoTopics(t *testing.T) {
 func TestWebhookHandler_Handle_BadRequests(t *testing.T) {
 	mockCtx := tests.DefaultMockContext()
 	mockCtx.On("GetLogger").Once()
-	mockCtx.On("ShouldBindJSON").Once()
-	mockCtx.On("JSON").Once()
+	mockCtx.On("FromJson").Once()
+	mockCtx.On("ToJson").Once()
 	mockBroker := new(tests.MockMessageBroker)
 	mockLogger := new(tests.MockLogger)
 	mockLogger.On("Errorf").Once()
@@ -94,7 +94,7 @@ func TestWebhookHandler_Handle_PublishError(t *testing.T) {
 	)
 	mockCtx := tests.DefaultMockContext()
 	mockCtx.On("GetLogger").Once()
-	mockCtx.On("ShouldBindJSON").Once()
+	mockCtx.On("FromJson").Once()
 	mockCtx.On("SetStatusCode").Once()
 	mockBroker := new(tests.MockMessageBroker)
 	mockBroker.PublishError = true

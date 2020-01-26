@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/ricdeau/gitlab-extension/app/pkg/logging"
 	"net/http"
+	"sync"
 )
 
 // PerformGetRequest - performs GET request with Private-Token header and returns response.
@@ -34,4 +35,33 @@ func PerformGetRequest(
 		err = fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 	return
+}
+
+type CountingSemaphore struct {
+	Count   int
+	wg      sync.WaitGroup
+	once    sync.Once
+	counter chan struct{}
+}
+
+func (s *CountingSemaphore) Acquire() {
+	if s.Count == 0 {
+		panic("CountingSemaphore counter is 0")
+	}
+	if s.counter == nil {
+		s.once.Do(func() {
+			s.counter = make(chan struct{}, s.Count)
+		})
+	}
+	s.wg.Add(1)
+	s.counter <- struct{}{}
+}
+
+func (s *CountingSemaphore) Release() {
+	<-s.counter
+	s.wg.Done()
+}
+
+func (s *CountingSemaphore) WaitAll() {
+	s.wg.Wait()
 }

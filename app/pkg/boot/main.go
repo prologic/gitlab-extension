@@ -59,7 +59,7 @@ func main() {
 	db, err := bitcask.Open("db")
 	defer func() {
 		err := db.Close()
-		logger.Errorf("Error while closing db: %v", err)
+		logger.Errorf("ErrorResponse while closing db: %v", err)
 	}()
 
 	// set telegram bot
@@ -69,8 +69,8 @@ func main() {
 	router.Use(static.Serve("/", static.LocalFile("./www", true)))
 
 	// set proxy handler
-	proxyHandler := handlers.NewProxyHandler(conf, cache, logger)
-	router.GET("/projects", proxyHandler.Handle)
+	proxy := handlers.NewProxy(conf, cache, logger)
+	router.GET("/projects", proxy.CreateHandler())
 
 	// set socket handler
 	socket := configureSocketHandler(msgBroker, logger)
@@ -141,7 +141,7 @@ func setCache(cache caching.ProjectsCache, broker broker.MessageBroker, logger *
 		}
 		err := cache.UpdatePipeline(push)
 		if err != nil {
-			logger.Errorf("Error while updating cache: %v", err)
+			logger.Errorf("ErrorResponse while updating cache: %v", err)
 		}
 	})
 	if err != nil {

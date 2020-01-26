@@ -1,5 +1,9 @@
 package contracts
 
+type ProjectsResponse struct {
+	Projects []Project `json:"projects"`
+}
+
 type Project struct {
 	Id           int64      `json:"id"`
 	Name         string     `json:"name"`
@@ -22,4 +26,8 @@ type Commit struct {
 	Title     string `json:"title"`
 	CreatedAt string `json:"created_at"`
 	Author    string `json:"Author"`
+}
+
+func NewProjectsResponse(projects []Project) ProjectsResponse {
+	return ProjectsResponse{projects}
 }

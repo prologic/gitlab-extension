@@ -29,9 +29,9 @@ func (handler *webhookHandler) handle(c Context) {
 		return
 	}
 	var message contracts.PipelinePush
-	if err := c.ShouldBindJSON(&message); err != nil {
+	if err := c.FromJson(&message); err != nil {
 		logger.Errorf("Request body doesn't match type: %T", message)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.ToJson(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
