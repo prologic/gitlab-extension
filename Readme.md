@@ -3,9 +3,9 @@
 ```
 $ cd <project_dir>
 
-$ docker volume create gitlab_extensions_db
+$ docker volume create gitlab_extension_db
 
-$ docker build -t gitlab-extensions .
+$ docker build -t gitlab-extension .
 
 $ docker run -d -p port:port \
              --name name --restart unless-stopped \ 
