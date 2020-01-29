@@ -10,7 +10,7 @@ const eventLogger = "eventLogger"
 
 type HandlerFunc func(Context)
 
-func (h HandlerFunc) CreateHandler() gin.HandlerFunc {
+func (h HandlerFunc) Handler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		h(&GinContext{ctx})
 	}

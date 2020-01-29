@@ -1,13 +1,10 @@
 FROM golang:alpine AS backend-builder
-RUN apk update \
-    && apk upgrade \
-    && apk add --no-cache git \
-    && apk add --no-cache glide
-WORKDIR $GOPATH/src/server
+RUN apk update && apk upgrade && apk add --no-cache git
+WORKDIR /src
 RUN mkdir /output
-COPY app .
-RUN glide install
-RUN GOOS=linux go build -o /output/srv
+COPY app/ .
+RUN ls -l
+RUN GOOS=linux go build -o /output/server github.com/ricdeau/gitlab-extension/app/cmd/server
 
 FROM node:12-alpine as frontend-builder
 WORKDIR /front
@@ -25,4 +22,5 @@ RUN apk update \
     && apk upgrade \
     && apk add ca-certificates \
     && update-ca-certificates 2>/dev/null || true
-CMD ["./srv"]
+RUN ls -l
+CMD ["./boot"]

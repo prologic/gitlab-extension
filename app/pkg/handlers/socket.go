@@ -43,7 +43,7 @@ func NewSocket(topic string, broadcaster WsBroadcaster, broker broker.MessageBro
 	}
 }
 
-// CreateHandler http message. Just a stub.
+// Handler http message. Just a stub.
 func (handler *socketHandler) handle(c Context) {
 	err := handler.HandleRequest(c.GetWriter(), c.GetRequest())
 	if err != nil {

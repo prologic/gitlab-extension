@@ -10,7 +10,7 @@ import (
 func TestHandlerFunc_CreateHandler(t *testing.T) {
 	var handlerFunc HandlerFunc
 	handlerFunc = func(Context) {}
-	ginHandler := handlerFunc.CreateHandler()
+	ginHandler := handlerFunc.Handler()
 
 	assert.NotNil(t, ginHandler)
 	assert.IsType(t, gin.HandlerFunc(nil), ginHandler)

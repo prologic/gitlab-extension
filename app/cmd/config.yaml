@@ -1,0 +1,9 @@
+port: 5333
+gitlab-uri: ""
+gitlab-token: ""
+telegram-bot-enabled: true
+telegram-bot-token: ""
+gitlab-namespaces:
+  - public
+origins:
+  - http://localhost

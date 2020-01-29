@@ -4,19 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
-	"github.com/google/uuid"
-	"github.com/prologic/bitcask"
 	"github.com/ricdeau/gitlab-extension/app/pkg/broker"
 	"github.com/ricdeau/gitlab-extension/app/pkg/config"
 	"github.com/ricdeau/gitlab-extension/app/pkg/contracts"
 	"github.com/ricdeau/gitlab-extension/app/pkg/logging"
 	"github.com/ricdeau/gitlab-extension/app/pkg/utils"
-	"github.com/sirupsen/logrus"
+	"strconv"
 	"strings"
 )
 
 const (
-	BotTopic   = "telegram_bot"
 	chatPrefix = "chat"
 )
 
@@ -26,34 +23,46 @@ type GitlabMessage contracts.PipelinePush
 type Bot struct {
 	*tgbotapi.BotAPI
 	*config.Config
-	db        *bitcask.Bitcask
+	topic     string
+	db        BotDb
 	queue     broker.MessageBroker
-	logger    *logrus.Entry
+	logger    logging.Logger
 	updatesCh tgbotapi.UpdatesChannel
 }
 
 // Creates new instance of telegram bot.
 func NewBot(
-	botApi *tgbotapi.BotAPI,
-	db *bitcask.Bitcask,
-	queue broker.MessageBroker,
+	topic string,
 	config *config.Config,
-	logger *logrus.Logger) *Bot {
+	db BotDb,
+	queue broker.MessageBroker,
+	logger logging.Logger) (*Bot, error) {
 
+	botApi, err := tgbotapi.NewBotAPI(config.BotToken)
+	if err != nil {
+		return nil, err
+	}
 	bot := &Bot{}
+	bot.topic = topic
 	bot.BotAPI = botApi
 	bot.db = db
 	bot.queue = queue
 	bot.Config = config
-	bot.logger = logger.WithField(logging.CorrelationIdKey, uuid.New())
-	//bot.updatesCh = bot.GetUpdatesChan(tgbotapi.UpdateConfig{Timeout: 5})
-	bot.logger.Info("Telegram bot initialized")
-	return bot
+	bot.logger = logger
+	updates, err := bot.GetUpdatesChan(tgbotapi.UpdateConfig{Timeout: 5})
+	if err != nil {
+		return nil, err
+	}
+	bot.updatesCh = updates
+	bot.logger.Infof("Telegram bot initialized")
+	return bot, nil
 }
 
 // Start handling messages.
-func (bot *Bot) Start() {
-	bot.subscribeToTopic()
+func (bot *Bot) Start() error {
+	if err := bot.subscribeToTopic(); err != nil {
+		return err
+	}
 	go func() {
 		for update := range bot.updatesCh {
 			chatId := update.Message.Chat.ID
@@ -66,7 +75,7 @@ func (bot *Bot) Start() {
 			}
 			availableNamespaces := bot.getAvailableNamespaces(update.Message.Text)
 			if len(availableNamespaces) == 0 {
-				bot.Send(chatId, "You do not have any available namespaces.")
+				bot.Send(chatId, "You don't have any available groups.")
 				continue
 			}
 
@@ -81,9 +90,10 @@ func (bot *Bot) Start() {
 				bot.Send(chatId, "Sorry something went wrong.")
 			}
 			namespacesString := strings.Join(availableNamespaces, ", ")
-			bot.Send(chatId, fmt.Sprintf("You have been subscribed to namespaces: %s", namespacesString))
+			bot.Send(chatId, fmt.Sprintf("You have been subscribed to group: %s", namespacesString))
 		}
 	}()
+	return nil
 }
 
 // Send message to chat.
@@ -101,31 +111,26 @@ func (bot *Bot) Send(chatId int64, text string) {
 
 // Get namespaces that have been bound to given chat id.
 func (bot *Bot) getChatNamespaces(chatId int64) (result []string, err error) {
-	//prefix := fmt.Sprintf("%s_%d_", chatPrefix, chatId)
-	//err = bot.db.Scan(prefix, func(key string) error {
-	//	result = append(result, strings.TrimPrefix(key, prefix))
-	//	return nil
-	//})
+	prefix := fmt.Sprintf("%s_%d_", chatPrefix, chatId)
+	err = bot.db.Scan(prefix, func(key string) error {
+		result = append(result, strings.TrimPrefix(key, prefix))
+		return nil
+	})
 	return
 }
 
 // Binds namespaces to given chat id.
 func (bot *Bot) setChatNamespaces(chatId int64, namespaces []string) (err error) {
-	//err = bot.db.Lock()
-	//if err != nil {
-	//	return
-	//}
-	//defer bot.db.Unlock()
-	//for _, ns := range namespaces {
-	//	key := fmt.Sprintf("%s_%d_%s", chatPrefix, chatId, ns)
-	//	if bot.db.Has(key) {
-	//		continue
-	//	}
-	//	err = bot.db.Put(key, []byte("<empty>"))
-	//	if err != nil {
-	//		return
-	//	}
-	//}
+	err = bot.db.Transaction(func() error {
+		for _, ns := range namespaces {
+			key := fmt.Sprintf("%s_%d_%s", chatPrefix, chatId, ns)
+			if bot.db.Contains(key) {
+				continue
+			}
+			return bot.db.Set(key)
+		}
+		return nil
+	})
 	return
 }
 
@@ -157,27 +162,29 @@ func (bot *Bot) getAvailableNamespaces(privateToken string) (result []string) {
 }
 
 // Subscribes bot to specific topic in global queue.
-func (bot *Bot) subscribeToTopic() {
-	//bot.queue.AddTopic(BotTopic)
-	//bot.queue.Subscribe(BotTopic, func(message interface{}) {
-	//	msg := GitlabMessage(message.(contracts.PipelinePush))
-	//	err := bot.db.Scan(chatPrefix, func(key string) error {
-	//		if strings.HasSuffix(key, msg.Project.Namespace) {
-	//			parts := strings.Split(key, "_")
-	//			if len(parts) > 2 {
-	//				chatId, err := strconv.ParseInt(parts[1], 10, 64)
-	//				if err != nil {
-	//					return err
-	//				}
-	//				bot.Send(chatId, msg.toTelegramMessageText())
-	//			}
-	//		}
-	//		return nil
-	//	})
-	//	if err != nil {
-	//		bot.logger.Errorf("ErrorResponse while sending gitlab update to telegram: %v", err)
-	//	}
-	//})
+func (bot *Bot) subscribeToTopic() (err error) {
+	if err = bot.queue.AddTopic(bot.topic); err != nil {
+		panic(err)
+	}
+	return bot.queue.Subscribe(bot.topic, func(message interface{}) {
+		msg := GitlabMessage(message.(contracts.PipelinePush))
+		err := bot.db.Scan(chatPrefix, func(key string) error {
+			if strings.HasSuffix(key, msg.Project.Namespace) {
+				parts := strings.Split(key, "_")
+				if len(parts) > 2 {
+					chatId, err := strconv.ParseInt(parts[1], 10, 64)
+					if err != nil {
+						return err
+					}
+					bot.Send(chatId, msg.toTelegramMessageText())
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			bot.logger.Errorf("ErrorResponse while sending gitlab update to telegram: %v", err)
+		}
+	})
 }
 
 // Formats gitlab message to telegram's message text.

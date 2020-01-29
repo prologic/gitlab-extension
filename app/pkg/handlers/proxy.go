@@ -54,7 +54,7 @@ func NewProxy(conf *config.Config, cache caching.ProjectsCache, logger logging.L
 	}
 }
 
-// CreateHandler '/projects' request
+// Handler '/projects' request
 func (handler *proxyHandler) handle(c Context) {
 	logger := c.GetLogger()
 	if logger == nil {
