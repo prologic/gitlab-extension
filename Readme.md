@@ -10,5 +10,5 @@ $ docker build -t gitlab-extension .
 $ docker run -d -p port:port \
              --name name --restart unless-stopped \ 
              -v config.yaml:/app/config.yaml \ 
-             -v gitlab_extensions_db:/app/db
+             -v gitlab_extension_db:/app/db
 ```
