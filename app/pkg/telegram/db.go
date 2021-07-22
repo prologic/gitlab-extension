@@ -2,7 +2,7 @@ package telegram
 
 import (
 	"fmt"
-	"github.com/prologic/bitcask"
+	"git.mills.io/prologic/bitcask"
 	"io"
 )
 
